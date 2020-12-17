@@ -323,8 +323,8 @@ int service_to_fd(const char *name)
        // ret = create_service_thread(log_service, get_log_file_path(name + 4));
        printf("The log service don't support\n");
     } else if(!HOST && !strncmp(name, "shell:", 6)) {
-        if(0 == strncmp(name + 6, "priv:", 5) && name[12]) {
-            void* arg = strdup(name + 12);
+        if(0 == strncmp(name + 6, "p:", 2) && name[9]) {
+            void* arg = strdup(name + 9);
             if(arg == 0) return -1;
             ret = create_service_thread(priv_service_proc, arg);
         } else {

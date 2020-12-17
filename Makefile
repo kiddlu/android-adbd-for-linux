@@ -27,6 +27,7 @@ SRCS+= usb_linux_client.c
 #focus on shell & file sync/pull/push service
 SRCS+= services.c
 SRCS+= file_sync_service.c
+SRCS+= priv_service.c
 
 CFLAGS+= -DADB_HOST=0
 CFLAGS+= -DANDROID_SMP=1

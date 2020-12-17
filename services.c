@@ -26,6 +26,7 @@
 #define  TRACE_TAG  TRACE_SERVICES
 #include "adb.h"
 #include "file_sync_service.h"
+#include "priv_service.h"
 
 #if ADB_HOST
 #  ifndef HAVE_WINSOCK
@@ -321,10 +322,16 @@ int service_to_fd(const char *name)
        // ret = create_service_thread(log_service, get_log_file_path(name + 4));
        printf("The log service don't support\n");
     } else if(!HOST && !strncmp(name, "shell:", 6)) {
-        if(name[6]) {
-            ret = create_subproc_thread(name + 6);
+        if(0 == strncmp(name + 6, "priv:", 5) && name[12]) {
+            void* arg = strdup(name + 12);
+            if(arg == 0) return -1;
+            ret = create_service_thread(priv_service_proc, arg);
         } else {
-            ret = create_subproc_thread(0);
+            if(name[6]) {
+                ret = create_subproc_thread(name + 6);
+            } else {
+                ret = create_subproc_thread(0);
+            }
         }
     } else if(!strncmp(name, "sync:", 5)) {
         ret = create_service_thread(file_sync_service, NULL);

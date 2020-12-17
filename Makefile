@@ -40,10 +40,9 @@ LIBS= -lpthread
 
 TOOLCHAIN=
 CC= $(TOOLCHAIN)gcc
-LD= $(TOOLCHAIN)gcc
 
 OBJS= $(SRCS:%.c=%.o)
-OBJS+= $(S_SRCS:%.S=%.o)
+#OBJS+= $(S_SRCS:%.S=%.o)
 
 all: adbd
 
@@ -51,4 +50,4 @@ adbd: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 clean:
-	rm -rf $(OBJS)
+	rm -rf adb $(OBJS)

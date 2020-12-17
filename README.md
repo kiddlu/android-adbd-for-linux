@@ -4,8 +4,8 @@ This mini adb daemon can compile and run on GNU/Linux or Embedded Linux system w
 
 Base on aosp kitkat-release code.
 
-You can use <shell p:> cmd for private service with google standard adb client 
+You can use `adb shell p:` cmd for private service with google standard adb client 
 ```
-adb shell p: Hello
+adb shell p: Hello World
 ```
 

@@ -34,8 +34,9 @@
 #    include <sys/ioctl.h>
 #  endif
 #else
-#  include <cutils/android_reboot.h>
-#  include <cutils/properties.h>
+#define PROP_VALUE_MAX  92
+#define PROPERTY_VALUE_MAX  PROP_VALUE_MAX
+#include "sockets_libcutils.h"
 #endif
 
 typedef struct stinfo stinfo;

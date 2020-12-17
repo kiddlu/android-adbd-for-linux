@@ -15,7 +15,7 @@
 ** limitations under the License.
 */
 
-#include <cutils/sockets.h>
+//#include <cutils/sockets.h>
 
 #include <stdlib.h>
 #include <string.h>

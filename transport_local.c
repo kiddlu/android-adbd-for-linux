@@ -22,7 +22,7 @@
 #include "sysdeps.h"
 #include <sys/types.h>
 #if !ADB_HOST
-#include <cutils/properties.h>
+#include "sockets_libcutils.h"
 #endif
 
 #define  TRACE_TAG  TRACE_TRANSPORT

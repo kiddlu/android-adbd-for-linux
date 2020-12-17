@@ -33,8 +33,9 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 #if !ADB_HOST
-#include <cutils/properties.h>
-#include <cutils/android_filesystem_config.h>
+#define PROP_VALUE_MAX  92
+#define PROPERTY_VALUE_MAX  PROP_VALUE_MAX
+#include "sockets_libcutils.h"
 #include <linux/capability.h>
 #include <linux/prctl.h>
 #include <sys/mount.h>

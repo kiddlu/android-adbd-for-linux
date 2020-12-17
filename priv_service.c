@@ -12,8 +12,8 @@ void priv_service_proc(int fd, void *arg)
 {
     D("priv service thread started, fd=%d arg=%s\n",fd, (char *)arg);
 
+    writex(fd, arg, strlen(arg));
     free(arg);
     adb_close(fd);
 
-    return;
 }

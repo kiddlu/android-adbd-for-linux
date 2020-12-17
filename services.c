@@ -280,6 +280,7 @@ static int create_subproc_thread(const char *name)
 int service_to_fd(const char *name)
 {
     int ret = -1;
+    //printf("%s\n", name);
 
     if(!strncmp(name, "tcp:", 4)) {
         int port = atoi(name + 4);

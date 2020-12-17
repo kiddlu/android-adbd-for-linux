@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#define  TRACE_TAG  TRACE_SERVICES
+
 #include "sysdeps.h"
 #include "adb.h"
 #include "priv_service.h"

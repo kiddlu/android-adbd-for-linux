@@ -91,37 +91,6 @@ static int remote_write(apacket *p, atransport *t)
     return 0;
 }
 
-
-int local_connect(int port) {
-    return local_connect_arbitrary_ports(port-1, port);
-}
-
-int local_connect_arbitrary_ports(int console_port, int adb_port)
-{
-    char buf[64];
-    int  fd = -1;
-
-    if (fd < 0) {
-        fd = socket_loopback_client(adb_port, SOCK_STREAM);
-    }
-
-    if (fd >= 0) {
-        D("client: connected on remote on fd %d\n", fd);
-        close_on_exec(fd);
-        disable_tcp_nagle(fd);
-        snprintf(buf, sizeof buf, "%s%d", LOCAL_CLIENT_PREFIX, console_port);
-        register_socket_transport(fd, buf, adb_port, 1);
-        return 0;
-    }
-    return -1;
-}
-
-
-static void *client_socket_thread(void *x)
-{
-    return 0;
-}
-
 static void *server_socket_thread(void * arg)
 {
     int serverfd, fd;
@@ -161,11 +130,7 @@ void local_init(int port)
     adb_thread_t thr;
     void* (*func)(void *);
 
-    if(HOST) {
-        func = client_socket_thread;
-    } else {
-            func = server_socket_thread;
-    }
+    func = server_socket_thread;
 
     D("transport: local %s init\n", HOST ? "client" : "server");
 

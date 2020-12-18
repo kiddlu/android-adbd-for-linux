@@ -615,20 +615,7 @@ int local_name_to_fd(const char *name)
 
         return ret;
     }
-#ifndef HAVE_WIN32_IPC  /* no Unix-domain sockets on Win32 */
-    // It's non-sensical to support the "reserved" space on the adb host side
-    if(!strncmp(name, "local:", 6)) {
-        return socket_local_server(name + 6,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    } else if(!strncmp(name, "localabstract:", 14)) {
-        return socket_local_server(name + 14,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    } else if(!strncmp(name, "localfilesystem:", 16)) {
-        return socket_local_server(name + 16,
-                ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
-    }
 
-#endif
     printf("unknown local portname '%s'\n", name);
     return -1;
 }

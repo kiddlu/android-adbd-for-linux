@@ -14,11 +14,6 @@ SRCS+= transport_usb.c
 #net driver
 SRCS+= sockets.c
 SRCS+= sockets_libcutils.c
-#SRCS+= socket_inaddr_any_server.c
-#SRCS+= socket_local_client.c
-#SRCS+= socket_local_server.c
-#SRCS+= socket_loopback_client.c
-#SRCS+= socket_loopback_server.c
 
 #usb driver
 SRCS+= usb_linux_client.c

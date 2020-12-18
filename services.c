@@ -266,18 +266,6 @@ int service_to_fd(const char *name)
         } else {
             return -1;
         }
-    } else if(!strncmp(name, "local:", 6)) {
-        ret = socket_local_client(name + 6,
-                ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
-    } else if(!strncmp(name, "localreserved:", 14)) {
-        ret = socket_local_client(name + 14,
-                ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
-    } else if(!strncmp(name, "localabstract:", 14)) {
-        ret = socket_local_client(name + 14,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    } else if(!strncmp(name, "localfilesystem:", 16)) {
-        ret = socket_local_client(name + 16,
-                ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
     } else if(!strncmp("dev:", name, 4)) {
         ret = unix_open(name + 4, O_RDWR);
     } else if(!strncmp(name, "framebuffer:", 12)) {

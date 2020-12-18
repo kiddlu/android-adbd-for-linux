@@ -28,8 +28,6 @@
 #include "file_sync_service.h"
 #include "priv_service.h"
 
-#define PROP_VALUE_MAX  92
-#define PROPERTY_VALUE_MAX  PROP_VALUE_MAX
 #include "sockets_libcutils.h"
 
 typedef struct stinfo stinfo;
@@ -47,44 +45,6 @@ void *service_bootstrap_func(void *x)
     sti->func(sti->fd, sti->cookie);
     free(sti);
     return 0;
-}
-
-void restart_root_service(int fd, void *cookie)
-{
-}
-
-void restart_tcp_service(int fd, void *cookie)
-{
-    char buf[100];
-    char value[PROPERTY_VALUE_MAX];
-    int port = (int)cookie;
-
-    if (port <= 0) {
-        snprintf(buf, sizeof(buf), "invalid port\n");
-        writex(fd, buf, strlen(buf));
-        adb_close(fd);
-        return;
-    }
-
-    snprintf(value, sizeof(value), "%d", port);
-    //property_set("service.adb.tcp.port", value);
-    snprintf(buf, sizeof(buf), "restarting in TCP mode port: %d\n", port);
-    writex(fd, buf, strlen(buf));
-    adb_close(fd);
-}
-
-void restart_usb_service(int fd, void *cookie)
-{
-    char buf[100];
-
-    //property_set("service.adb.tcp.port", "0");
-    snprintf(buf, sizeof(buf), "restarting in USB mode\n");
-    writex(fd, buf, strlen(buf));
-    adb_close(fd);
-}
-
-void reboot_service(int fd, void *arg)
-{
 }
 
 static int create_service_thread(void (*func)(int, void *), void *cookie)
@@ -268,15 +228,6 @@ int service_to_fd(const char *name)
         }
     } else if(!strncmp("dev:", name, 4)) {
         ret = unix_open(name + 4, O_RDWR);
-    } else if(!strncmp(name, "framebuffer:", 12)) {
-       // ret = create_service_thread(framebuffer_service, 0);
-       printf("The framebuffer service don't support\n");
-    } else if (!strncmp(name, "jdwp:", 5)) {
-        //ret = create_jdwp_connection_fd(atoi(name+5));
-        printf("The jdwp service don't support\n");
-    } else if (!strncmp(name, "log:", 4)) {
-       // ret = create_service_thread(log_service, get_log_file_path(name + 4));
-       printf("The log service don't support\n");
     } else if(!HOST && !strncmp(name, "shell:", 6)) {
         if(0 == strncmp(name + 6, "p:", 2) && name[9]) {
             void* arg = strdup(name + 9);
@@ -291,31 +242,8 @@ int service_to_fd(const char *name)
         }
     } else if(!strncmp(name, "sync:", 5)) {
         ret = create_service_thread(file_sync_service, NULL);
-    } else if(!strncmp(name, "remount:", 8)) {
-        //ret = create_service_thread(remount_service, NULL);
-    } else if(!strncmp(name, "reboot:", 7)) {
-        void* arg = strdup(name + 7);
-        if(arg == 0) return -1;
-        ret = create_service_thread(reboot_service, arg);
-    } else if(!strncmp(name, "root:", 5)) {
-        ret = create_service_thread(restart_root_service, NULL);
-    } else if(!strncmp(name, "backup:", 7)) {
-        //char* arg = strdup(name+7);
-        //if (arg == NULL) return -1;
-        //ret = backup_service(BACKUP, arg);
-        printf("The backup service don't support\n");
-    } else if(!strncmp(name, "restore:", 8)) {
-        //ret = backup_service(RESTORE, NULL);
-        printf("The backup service don't support\n");
-    } else if(!strncmp(name, "tcpip:", 6)) {
-        int port;
-        if (sscanf(name + 6, "%d", &port) == 0) {
-            port = 0;
-        }
-        ret = create_service_thread(restart_tcp_service, (void *)port);
-    } else if(!strncmp(name, "usb:", 4)) {
-        ret = create_service_thread(restart_usb_service, NULL);
     }
+
     if (ret >= 0) {
         close_on_exec(ret);
     }

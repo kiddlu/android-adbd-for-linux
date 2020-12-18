@@ -36,7 +36,7 @@ CFLAGS+= -DHAVE_PTHREADS
 CFLAGS+= -D_GNU_SOURCE
 CFLAGS+= -D_XOPEN_SOURCE
 CFLAGS+= -I$(shell pwd)
-#LDFLAGS= -static 
+LDFLAGS= -static 
 LIBS= -lpthread
 
 TOOLCHAIN=

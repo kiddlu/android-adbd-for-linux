@@ -25,13 +25,15 @@ SRCS+= file_sync_service.c
 SRCS+= priv_service.c
 
 CFLAGS+= -DADB_HOST_ON_TARGET
-CFLAGS+= -DANDROID_SMP=1
-CFLAGS+= -DHAVE_SYS_SOCKET_H
-CFLAGS+= -DHAVE_PTHREADS
-CFLAGS+= -D_GNU_SOURCE
-CFLAGS+= -D_XOPEN_SOURCE
+
+CFLAGS+= -O2
+CFLAGS+= -Wall -Wno-unused-parameter -Wno-deprecated-declarations
+CFLAGS+= -D_GNU_SOURCE -D_XOPEN_SOURCE
+
 CFLAGS+= -I$(shell pwd)
+
 LDFLAGS= -static 
+
 LIBS= -lpthread
 
 TOOLCHAIN=

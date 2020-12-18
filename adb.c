@@ -529,11 +529,9 @@ int adb_main(int is_daemon, int server_port)
 
     init_transport_registration();
 
-    int usb = 0;
     if (access(USB_ADB_PATH, F_OK) == 0 || access(USB_FFS_ADB_EP0, F_OK) == 0) {
         // listen on USB
         usb_init();
-        usb = 1;
     }
 
 	//always init 

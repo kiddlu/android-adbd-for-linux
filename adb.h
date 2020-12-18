@@ -238,14 +238,10 @@ void install_local_socket(asocket *s);
 void remove_socket(asocket *s);
 void close_all_sockets(atransport *t);
 
-#define  LOCAL_CLIENT_PREFIX  "emulator-"
-
 asocket *create_local_socket(int fd);
 asocket *create_local_service_socket(const char *destination);
 
 asocket *create_remote_socket(unsigned id, atransport *t);
-void connect_to_remote(asocket *s, const char *destination);
-void connect_to_smartsocket(asocket *s);
 
 void fatal(const char *fmt, ...);
 void fatal_errno(const char *fmt, ...);
@@ -253,8 +249,6 @@ void fatal_errno(const char *fmt, ...);
 void handle_packet(apacket *p, atransport *t);
 void send_packet(apacket *p, atransport *t);
 
-void get_my_path(char *s, size_t maxLen);
-int launch_server(int server_port);
 int adb_main(int is_daemon, int server_port);
 
 
@@ -262,17 +256,13 @@ int adb_main(int is_daemon, int server_port);
 ** get_device_transport does an acquire on your behalf before returning
 */
 void init_transport_registration(void);
-int  list_transports(char *buf, size_t  bufsize, int long_listing);
 void update_transports(void);
-
-asocket*  create_device_tracker(void);
 
 /* Obtain a transport from the available transports.
 ** If state is != CS_ANY, only transports in that state are considered.
 ** If serial is non-NULL then only the device with that serial will be chosen.
 ** If no suitable transport is found, error is set.
 */
-atransport *acquire_one_transport(int state, transport_type ttype, const char* serial, char **error_out);
 void   add_transport_disconnect( atransport*  t, adisconnect*  dis );
 void   remove_transport_disconnect( atransport*  t, adisconnect*  dis );
 void   run_transport_disconnects( atransport*  t );
@@ -281,9 +271,6 @@ void   kick_transport( atransport*  t );
 /* initialize a transport object's func pointers and state */
 int  init_socket_transport(atransport *t, int s, int port, int local);
 void init_usb_transport(atransport *t, usb_handle *usb, int state);
-
-/* for MacOS X cleanup */
-void close_usb_devices();
 
 /* cause new transports to be init'd and added to the list */
 int register_socket_transport(int s, const char *serial, int port, int local);
@@ -297,24 +284,8 @@ void register_usb_transport(usb_handle *h, const char *serial, const char *devpa
 /* this should only be used for transports with connection_state == CS_NOPERM */
 void unregister_usb_transport(usb_handle *usb);
 
-atransport *find_transport(const char *serial);
-
 int service_to_fd(const char *name);
 
-int       init_jdwp(void);
-asocket*  create_jdwp_service_socket();
-asocket*  create_jdwp_tracker_service_socket();
-int       create_jdwp_connection_fd(int  jdwp_pid);
-
-typedef enum {
-    BACKUP,
-    RESTORE
-} BackupOperation;
-int backup_service(BackupOperation operation, char* args);
-void framebuffer_service(int fd, void *cookie);
-void log_service(int fd, void *cookie);
-void remount_service(int fd, void *cookie);
-char * get_log_file_path(const char * log_name);
 
 /* packet allocator */
 apacket *get_apacket(void);

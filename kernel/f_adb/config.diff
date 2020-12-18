@@ -1,0 +1,86 @@
+/.confg
++CONFIG_USB_F_ADB=y
+
+/drivers/usb/gadget/Kconfig
+ config USB_F_UVC
+ 	tristate
+ 
++config USB_F_ADB
++	tristate
+
+ 
+/drivers/usb/gadget/function/Makefile
++usb_f_adb-y			:= f_adb.o
++obj-$(CONFIG_USB_F_ADB)		+= usb_f_adb.o
+
+/drivers/usb/gadget/legacy/Kconfig
+ 	select USB_LIBCOMPOSITE
+ 	select VIDEOBUF2_VMALLOC
+ 	select USB_F_UVC
++	select USB_F_ADB
+
+ 	help
+ 	  The Webcam Gadget acts as a composite USB Audio and Video Class
+ 	  device. It provides a userspace API to process UVC control requests
+
+/drivers/usb/gadget/legacy/webcam.c
+ static struct usb_function_instance *fi_uvc;
+ static struct usb_function *f_uvc;
+ 
++static struct usb_function_instance *fi_adb;
++static struct usb_function *f_adb;
+
+@@ webcam_config_bind(struct usb_configuration *c)
+ 	if (status < 0)
+ 		usb_put_function(f_uvc);
+ 
++	f_adb = usb_get_function(fi_adb);
++	if (IS_ERR(f_adb))
++		return PTR_ERR(f_adb);
++
++	status = usb_add_function(c, f_adb);
++	if (status < 0)
++		usb_put_function(f_adb);
++
+ 	return status;
+ }
+
+@@ webcam_unbind(struct usb_composite_dev *cdev)
+ 		usb_put_function(f_uvc);
+ 	if (!IS_ERR_OR_NULL(fi_uvc))
+ 		usb_put_function_instance(fi_uvc);
++	if (!IS_ERR_OR_NULL(f_adb))
++		usb_put_function(f_adb);
++	if (!IS_ERR_OR_NULL(fi_adb))
++		usb_put_function_instance(fi_adb);
+ 	return 0;
+ }
+ 
+@@ webcam_bind(struct usb_composite_dev *cdev)
+ 	if (IS_ERR(fi_uvc))
+ 		return PTR_ERR(fi_uvc);
+ 
++	fi_adb = usb_get_function_instance("adb");
++	if (IS_ERR(fi_adb))
++		return PTR_ERR(fi_adb);
+ 	uvc_opts = container_of(fi_uvc, struct f_uvc_opts, func_inst);
+ 
+ 	uvc_opts->streaming_interval = streaming_interval;
+@@ webcam_bind(struct usb_composite_dev *cdev)
+ 		goto error;
+ 
+ 	usb_composite_overwrite_options(cdev, &coverwrite);
+-	INFO(cdev, "Webcam Video Gadget\n");
++	INFO(cdev, "Webcam Video Gadget(F_UVC + F_ADB)\n");
+ 	return 0;
+ 
+ error:
+-	usb_put_function_instance(fi_uvc);
++	if (!IS_ERR_OR_NULL(fi_uvc))
++		usb_put_function_instance(fi_uvc);
++	if (!IS_ERR_OR_NULL(fi_adb))
++		usb_put_function_instance(fi_adb);
++
+ 	return ret;
+ }
+ 

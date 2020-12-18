@@ -8,9 +8,6 @@
 #endif
 ADB_MUTEX(socket_list_lock)
 ADB_MUTEX(transport_lock)
-#if ADB_HOST
-ADB_MUTEX(local_transports_lock)
-#endif
 ADB_MUTEX(usb_lock)
 
 // Sadly logging to /data/adb/adb-... is not thread safe.

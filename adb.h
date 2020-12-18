@@ -279,9 +279,6 @@ void   run_transport_disconnects( atransport*  t );
 void   kick_transport( atransport*  t );
 
 /* initialize a transport object's func pointers and state */
-#if ADB_HOST
-int get_available_local_transport_index();
-#endif
 int  init_socket_transport(atransport *t, int s, int port, int local);
 void init_usb_transport(atransport *t, usb_handle *usb, int state);
 
@@ -301,23 +298,14 @@ void register_usb_transport(usb_handle *h, const char *serial, const char *devpa
 void unregister_usb_transport(usb_handle *usb);
 
 atransport *find_transport(const char *serial);
-#if ADB_HOST
-atransport* find_emulator_transport_by_adb_port(int adb_port);
-#endif
 
 int service_to_fd(const char *name);
-#if ADB_HOST
-asocket *host_service_to_socket(const char*  name, const char *serial);
-#endif
 
-#if !ADB_HOST
 int       init_jdwp(void);
 asocket*  create_jdwp_service_socket();
 asocket*  create_jdwp_tracker_service_socket();
 int       create_jdwp_connection_fd(int  jdwp_pid);
-#endif
 
-#if !ADB_HOST
 typedef enum {
     BACKUP,
     RESTORE
@@ -327,7 +315,6 @@ void framebuffer_service(int fd, void *cookie);
 void log_service(int fd, void *cookie);
 void remount_service(int fd, void *cookie);
 char * get_log_file_path(const char * log_name);
-#endif
 
 /* packet allocator */
 apacket *get_apacket(void);
@@ -360,7 +347,6 @@ typedef enum {
 
 #if ADB_TRACE
 
-#if !ADB_HOST
 /*
  * When running inside the emulator, guest's adbd can connect to 'adb-debug'
  * qemud service that can display adb trace messages (on condition that emulator
@@ -371,9 +357,6 @@ typedef enum {
 void adb_qemu_trace(const char* fmt, ...);
 /* Macro to use to send ADB trace messages to the emulator. */
 #define DQ(...)    adb_qemu_trace(__VA_ARGS__)
-#else
-#define DQ(...) ((void)0)
-#endif  /* !ADB_HOST */
 
   extern int     adb_trace_mask;
   extern unsigned char    adb_trace_output_count;
@@ -448,10 +431,6 @@ int usb_read(usb_handle *h, void *data, int len);
 int usb_close(usb_handle *h);
 void usb_kick(usb_handle *h);
 
-/* used for USB device detection */
-#if ADB_HOST
-int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol);
-#endif
 
 unsigned host_to_le32(unsigned n);
 int adb_commandline(int argc, char **argv);
@@ -473,7 +452,6 @@ extern int SHELL_EXIT_NOTIFY_FD;
 
 #define CHUNK_SIZE (64*1024)
 
-#if !ADB_HOST
 #define USB_ADB_PATH     "/dev/android_adb"
 
 #define USB_FFS_ADB_PATH  "/dev/usb-ffs/adb/"
@@ -482,7 +460,6 @@ extern int SHELL_EXIT_NOTIFY_FD;
 #define USB_FFS_ADB_EP0   USB_FFS_ADB_EP(ep0)
 #define USB_FFS_ADB_OUT   USB_FFS_ADB_EP(ep1)
 #define USB_FFS_ADB_IN    USB_FFS_ADB_EP(ep2)
-#endif
 
 int sendfailmsg(int fd, const char *reason);
 int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s);

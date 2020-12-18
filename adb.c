@@ -32,16 +32,12 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
-#if !ADB_HOST
 #define PROP_VALUE_MAX  92
 #define PROPERTY_VALUE_MAX  PROP_VALUE_MAX
 #include "sockets_libcutils.h"
 #include <linux/capability.h>
 #include <linux/prctl.h>
 #include <sys/mount.h>
-#else
-#include "usb_vendors.h"
-#endif
 
 #if ADB_TRACE
 ADB_MUTEX_DEFINE( D_lock );
@@ -52,9 +48,7 @@ int gListenAll = 0;
 
 static int auth_enabled = 0;
 
-#if !ADB_HOST
 static const char *adb_device_banner = "device";
-#endif
 
 #define MAX_LOG_STRING 2048
 
@@ -169,59 +163,6 @@ void  adb_trace_init(void)
     }
 }
 
-#if 0 //disable qemu emulator
-/*
- * Implements ADB tracing inside the emulator.
- */
-
-#include <stdarg.h>
-
-/*
- * Redefine open and write for qemu_pipe.h that contains inlined references
- * to those routines. We will redifine them back after qemu_pipe.h inclusion.
- */
-
-#undef open
-#undef write
-#define open    adb_open
-#define write   adb_write
-#include <hardware/qemu_pipe.h>
-#undef open
-#undef write
-#define open    ___xxx_open
-#define write   ___xxx_write
-
-/* A handle to adb-debug qemud service in the emulator. */
-int   adb_debug_qemu = -1;
-
-/* Initializes connection with the adb-debug qemud service in the emulator. */
-static int adb_qemu_trace_init(void)
-{
-    char con_name[32];
-
-    if (adb_debug_qemu >= 0) {
-        return 0;
-    }
-
-    /* adb debugging QEMUD service connection request. */
-    snprintf(con_name, sizeof(con_name), "qemud:adb-debug");
-    adb_debug_qemu = qemu_pipe_open(con_name);
-    return (adb_debug_qemu >= 0) ? 0 : -1;
-}
-
-void adb_qemu_trace(const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    char msg[1024];
-
-    if (adb_debug_qemu >= 0) {
-        vsnprintf(msg, sizeof(msg), fmt, args);
-        adb_write(adb_debug_qemu, msg, strlen(msg));
-    }
-}
-#endif  /* !ADB_HOST */
-
 apacket *get_apacket(void)
 {
     apacket *p = malloc(sizeof(apacket));
@@ -312,9 +253,6 @@ static void send_close(unsigned local, unsigned remote, atransport *t)
 
 static size_t fill_connect_data(char *buf, size_t bufsize)
 {
-#if ADB_HOST
-    return snprintf(buf, bufsize, "host::") + 1;
-#else
     static const char *cnxn_props[] = {
         "ro.product.name",
         "ro.product.model",
@@ -337,7 +275,6 @@ static size_t fill_connect_data(char *buf, size_t bufsize)
     }
 
     return bufsize - remaining + 1;
-#endif
 }
 
 static void send_connect(atransport *t)
@@ -856,62 +793,12 @@ nomem:
     return INSTALL_STATUS_INTERNAL_ERROR;
 }
 
-#ifdef HAVE_WIN32_PROC
-static BOOL WINAPI ctrlc_handler(DWORD type)
-{
-    exit(STATUS_CONTROL_C_EXIT);
-    return TRUE;
-}
-#endif
-
 static void adb_cleanup(void)
 {
     usb_cleanup();
 }
 
-void start_logging(void)
-{
-#ifdef HAVE_WIN32_PROC
-    char    temp[ MAX_PATH ];
-    FILE*   fnul;
-    FILE*   flog;
 
-    GetTempPath( sizeof(temp) - 8, temp );
-    strcat( temp, "adb.log" );
-
-    /* Win32 specific redirections */
-    fnul = fopen( "NUL", "rt" );
-    if (fnul != NULL)
-        stdin[0] = fnul[0];
-
-    flog = fopen( temp, "at" );
-    if (flog == NULL)
-        flog = fnul;
-
-    setvbuf( flog, NULL, _IONBF, 0 );
-
-    stdout[0] = flog[0];
-    stderr[0] = flog[0];
-    fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
-#else
-    int fd;
-
-    fd = unix_open("/dev/null", O_RDONLY);
-    dup2(fd, 0);
-    adb_close(fd);
-
-    fd = unix_open("/tmp/adb.log", O_WRONLY | O_CREAT | O_APPEND, 0640);
-    if(fd < 0) {
-        fd = unix_open("/dev/null", O_WRONLY);
-    }
-    dup2(fd, 1);
-    dup2(fd, 2);
-    adb_close(fd);
-    fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
-#endif
-}
-
-#if !ADB_HOST
 void start_device_log(void)
 {
     int fd;
@@ -947,194 +834,6 @@ void start_device_log(void)
     dup2(fd, 0);
     adb_close(fd);
 }
-#endif
-
-#if ADB_HOST
-
-#ifdef WORKAROUND_BUG6558362
-#include <sched.h>
-#define AFFINITY_ENVVAR "ADB_CPU_AFFINITY_BUG6558362"
-void adb_set_affinity(void)
-{
-   cpu_set_t cpu_set;
-   const char* cpunum_str = getenv(AFFINITY_ENVVAR);
-   char* strtol_res;
-   int cpu_num;
-
-   if (!cpunum_str || !*cpunum_str)
-       return;
-   cpu_num = strtol(cpunum_str, &strtol_res, 0);
-   if (*strtol_res != '\0')
-     fatal("bad number (%s) in env var %s. Expecting 0..n.\n", cpunum_str, AFFINITY_ENVVAR);
-
-   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-   D("orig cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
-   CPU_ZERO(&cpu_set);
-   CPU_SET(cpu_num, &cpu_set);
-   sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
-   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-   D("new cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
-}
-#endif
-
-int launch_server(int server_port)
-{
-#ifdef HAVE_WIN32_PROC
-    /* we need to start the server in the background                    */
-    /* we create a PIPE that will be used to wait for the server's "OK" */
-    /* message since the pipe handles must be inheritable, we use a     */
-    /* security attribute                                               */
-    HANDLE                pipe_read, pipe_write;
-    HANDLE                stdout_handle, stderr_handle;
-    SECURITY_ATTRIBUTES   sa;
-    STARTUPINFO           startup;
-    PROCESS_INFORMATION   pinfo;
-    char                  program_path[ MAX_PATH ];
-    int                   ret;
-
-    sa.nLength = sizeof(sa);
-    sa.lpSecurityDescriptor = NULL;
-    sa.bInheritHandle = TRUE;
-
-    /* create pipe, and ensure its read handle isn't inheritable */
-    ret = CreatePipe( &pipe_read, &pipe_write, &sa, 0 );
-    if (!ret) {
-        fprintf(stderr, "CreatePipe() failure, error %ld\n", GetLastError() );
-        return -1;
-    }
-
-    SetHandleInformation( pipe_read, HANDLE_FLAG_INHERIT, 0 );
-
-    /* Some programs want to launch an adb command and collect its output by
-     * calling CreateProcess with inheritable stdout/stderr handles, then
-     * using read() to get its output. When this happens, the stdout/stderr
-     * handles passed to the adb client process will also be inheritable.
-     * When starting the adb server here, care must be taken to reset them
-     * to non-inheritable.
-     * Otherwise, something bad happens: even if the adb command completes,
-     * the calling process is stuck while read()-ing from the stdout/stderr
-     * descriptors, because they're connected to corresponding handles in the
-     * adb server process (even if the latter never uses/writes to them).
-     */
-    stdout_handle = GetStdHandle( STD_OUTPUT_HANDLE );
-    stderr_handle = GetStdHandle( STD_ERROR_HANDLE );
-    if (stdout_handle != INVALID_HANDLE_VALUE) {
-        SetHandleInformation( stdout_handle, HANDLE_FLAG_INHERIT, 0 );
-    }
-    if (stderr_handle != INVALID_HANDLE_VALUE) {
-        SetHandleInformation( stderr_handle, HANDLE_FLAG_INHERIT, 0 );
-    }
-
-    ZeroMemory( &startup, sizeof(startup) );
-    startup.cb = sizeof(startup);
-    startup.hStdInput  = GetStdHandle( STD_INPUT_HANDLE );
-    startup.hStdOutput = pipe_write;
-    startup.hStdError  = GetStdHandle( STD_ERROR_HANDLE );
-    startup.dwFlags    = STARTF_USESTDHANDLES;
-
-    ZeroMemory( &pinfo, sizeof(pinfo) );
-
-    /* get path of current program */
-    GetModuleFileName( NULL, program_path, sizeof(program_path) );
-
-    ret = CreateProcess(
-            program_path,                              /* program path  */
-            "adb fork-server server",
-                                    /* the fork-server argument will set the
-                                       debug = 2 in the child           */
-            NULL,                   /* process handle is not inheritable */
-            NULL,                    /* thread handle is not inheritable */
-            TRUE,                          /* yes, inherit some handles */
-            DETACHED_PROCESS, /* the new process doesn't have a console */
-            NULL,                     /* use parent's environment block */
-            NULL,                    /* use parent's starting directory */
-            &startup,                 /* startup info, i.e. std handles */
-            &pinfo );
-
-    CloseHandle( pipe_write );
-
-    if (!ret) {
-        fprintf(stderr, "CreateProcess failure, error %ld\n", GetLastError() );
-        CloseHandle( pipe_read );
-        return -1;
-    }
-
-    CloseHandle( pinfo.hProcess );
-    CloseHandle( pinfo.hThread );
-
-    /* wait for the "OK\n" message */
-    {
-        char  temp[3];
-        DWORD  count;
-
-        ret = ReadFile( pipe_read, temp, 3, &count, NULL );
-        CloseHandle( pipe_read );
-        if ( !ret ) {
-            fprintf(stderr, "could not read ok from ADB Server, error = %ld\n", GetLastError() );
-            return -1;
-        }
-        if (count != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
-            fprintf(stderr, "ADB server didn't ACK\n" );
-            return -1;
-        }
-    }
-#elif defined(HAVE_FORKEXEC)
-    char    path[PATH_MAX];
-    int     fd[2];
-
-    // set up a pipe so the child can tell us when it is ready.
-    // fd[0] will be parent's end, and fd[1] will get mapped to stderr in the child.
-    if (pipe(fd)) {
-        fprintf(stderr, "pipe failed in launch_server, errno: %d\n", errno);
-        return -1;
-    }
-    get_my_path(path, PATH_MAX);
-    pid_t pid = fork();
-    if(pid < 0) return -1;
-
-    if (pid == 0) {
-        // child side of the fork
-
-        // redirect stderr to the pipe
-        // we use stderr instead of stdout due to stdout's buffering behavior.
-        adb_close(fd[0]);
-        dup2(fd[1], STDERR_FILENO);
-        adb_close(fd[1]);
-
-        char str_port[30];
-        snprintf(str_port, sizeof(str_port), "%d",  server_port);
-        // child process
-        int result = execl(path, "adb", "-P", str_port, "fork-server", "server", NULL);
-        // this should not return
-        fprintf(stderr, "OOPS! execl returned %d, errno: %d\n", result, errno);
-    } else  {
-        // parent side of the fork
-
-        char  temp[3];
-
-        temp[0] = 'A'; temp[1] = 'B'; temp[2] = 'C';
-        // wait for the "OK\n" message
-        adb_close(fd[1]);
-        int ret = adb_read(fd[0], temp, 3);
-        int saved_errno = errno;
-        adb_close(fd[0]);
-        if (ret < 0) {
-            fprintf(stderr, "could not read ok from ADB Server, errno = %d\n", saved_errno);
-            return -1;
-        }
-        if (ret != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
-            fprintf(stderr, "ADB server didn't ACK\n" );
-            return -1;
-        }
-
-        setsid();
-    }
-#else
-#error "cannot implement background server start on this platform"
-#endif
-    return 0;
-}
-#endif
 
 /* Constructs a local name of form tcp:port.
  * target_str points to the target string, it's content will be overwritten.
@@ -1146,57 +845,17 @@ void build_local_name(char* target_str, size_t target_size, int server_port)
   snprintf(target_str, target_size, "tcp:%d", server_port);
 }
 
-#if !ADB_HOST
-
-static void drop_capabilities_bounding_set_if_needed() {
-	return;
-}
-
-static int should_drop_privileges() {
-	return 0;
-}
-#endif /* !ADB_HOST */
-
 int adb_main(int is_daemon, int server_port)
 {
-#if !ADB_HOST
     int port;
     char value[PROPERTY_VALUE_MAX];
 
     umask(000);
-#endif
 
     atexit(adb_cleanup);
-#ifdef HAVE_WIN32_PROC
-    SetConsoleCtrlHandler( ctrlc_handler, TRUE );
-#elif defined(HAVE_FORKEXEC)
-    // No SIGCHLD. Let the service subproc handle its children.
-    signal(SIGPIPE, SIG_IGN);
-#endif
 
     init_transport_registration();
 
-#if ADB_HOST
-    HOST = 1;
-
-#ifdef WORKAROUND_BUG6558362
-    if(is_daemon) adb_set_affinity();
-#endif
-    usb_vendors_init();
-    usb_init();
-    local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
-    //adb_auth_init();
-
-    char local_name[30];
-    build_local_name(local_name, sizeof(local_name), server_port);
-    if(install_listener(local_name, "*smartsocket*", NULL, 0)) {
-        exit(1);
-    }
-#else
-    //property_get("ro.adb.secure", value, "0");
-    //auth_enabled = !strcmp(value, "1");
-    //if (auth_enabled)
-        //adb_auth_init();
 
     // Our external storage path may be different than apps, since
     // we aren't able to bind mount after dropping root.
@@ -1230,11 +889,8 @@ int adb_main(int is_daemon, int server_port)
     // If one of these properties is set, also listen on that port
     // If one of the properties isn't set and we couldn't listen on usb,
     // listen on the default port.
-    //property_get("service.adb.tcp.port", value, "");
-    ///if (!value[0]) {
-        //property_get("persist.adb.tcp.port", value, "");
-    //}
     if (sscanf(value, "%d", &port) == 1 && port > 0) {
+        printf("using port=%d\n", port);
         // listen on TCP port specified by service.adb.tcp.port property
         local_init(port);
     } else if (!usb) {
@@ -1242,22 +898,7 @@ int adb_main(int is_daemon, int server_port)
         local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
     }
 
-    //D("adb_main(): pre init_jdwp()\n");
-    //init_jdwp();
-    //D("adb_main(): post init_jdwp()\n");
-#endif
 
-    if (is_daemon)
-    {
-        // inform our parent that we are up and running.
-#ifdef HAVE_WIN32_PROC
-        DWORD  count;
-        WriteFile( GetStdHandle( STD_OUTPUT_HANDLE ), "OK\n", 3, &count, NULL );
-#elif defined(HAVE_FORKEXEC)
-        fprintf(stderr, "OK\n");
-#endif
-        start_logging();
-    }
     D("Event loop starting\n");
 
     fdevent_loop();
@@ -1279,120 +920,6 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         usb_cleanup();
         exit(0);
     }
-
-#if ADB_HOST
-    // "transport:" is used for switching transport with a specified serial number
-    // "transport-usb:" is used for switching transport to the only USB transport
-    // "transport-local:" is used for switching transport to the only local transport
-    // "transport-any:" is used for switching transport to the only transport
-    if (!strncmp(service, "transport", strlen("transport"))) {
-        char* error_string = "unknown failure";
-        transport_type type = kTransportAny;
-
-        if (!strncmp(service, "transport-usb", strlen("transport-usb"))) {
-            type = kTransportUsb;
-        } else if (!strncmp(service, "transport-local", strlen("transport-local"))) {
-            type = kTransportLocal;
-        } else if (!strncmp(service, "transport-any", strlen("transport-any"))) {
-            type = kTransportAny;
-        } else if (!strncmp(service, "transport:", strlen("transport:"))) {
-            service += strlen("transport:");
-            serial = service;
-        }
-
-        transport = acquire_one_transport(CS_ANY, type, serial, &error_string);
-
-        if (transport) {
-            s->transport = transport;
-            adb_write(reply_fd, "OKAY", 4);
-        } else {
-            sendfailmsg(reply_fd, error_string);
-        }
-        return 1;
-    }
-
-    // return a list of all connected devices
-    if (!strncmp(service, "devices", 7)) {
-        char buffer[4096];
-        int use_long = !strcmp(service+7, "-l");
-        if (use_long || service[7] == 0) {
-            memset(buf, 0, sizeof(buf));
-            memset(buffer, 0, sizeof(buffer));
-            D("Getting device list \n");
-            list_transports(buffer, sizeof(buffer), use_long);
-            snprintf(buf, sizeof(buf), "OKAY%04x%s",(unsigned)strlen(buffer),buffer);
-            D("Wrote device list \n");
-            writex(reply_fd, buf, strlen(buf));
-            return 0;
-        }
-    }
-
-    // remove TCP transport
-    if (!strncmp(service, "disconnect:", 11)) {
-        char buffer[4096];
-        memset(buffer, 0, sizeof(buffer));
-        char* serial = service + 11;
-        if (serial[0] == 0) {
-            // disconnect from all TCP devices
-            unregister_all_tcp_transports();
-        } else {
-            char hostbuf[100];
-            // assume port 5555 if no port is specified
-            if (!strchr(serial, ':')) {
-                snprintf(hostbuf, sizeof(hostbuf) - 1, "%s:5555", serial);
-                serial = hostbuf;
-            }
-            atransport *t = find_transport(serial);
-
-            if (t) {
-                unregister_transport(t);
-            } else {
-                snprintf(buffer, sizeof(buffer), "No such device %s", serial);
-            }
-        }
-
-        snprintf(buf, sizeof(buf), "OKAY%04x%s",(unsigned)strlen(buffer), buffer);
-        writex(reply_fd, buf, strlen(buf));
-        return 0;
-    }
-
-    // returns our value for ADB_SERVER_VERSION
-    if (!strcmp(service, "version")) {
-        char version[12];
-        snprintf(version, sizeof version, "%04x", ADB_SERVER_VERSION);
-        snprintf(buf, sizeof buf, "OKAY%04x%s", (unsigned)strlen(version), version);
-        writex(reply_fd, buf, strlen(buf));
-        return 0;
-    }
-
-    if(!strncmp(service,"get-serialno",strlen("get-serialno"))) {
-        char *out = "unknown";
-         transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
-       if (transport && transport->serial) {
-            out = transport->serial;
-        }
-        snprintf(buf, sizeof buf, "OKAY%04x%s",(unsigned)strlen(out),out);
-        writex(reply_fd, buf, strlen(buf));
-        return 0;
-    }
-    if(!strncmp(service,"get-devpath",strlen("get-devpath"))) {
-        char *out = "unknown";
-         transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
-       if (transport && transport->devpath) {
-            out = transport->devpath;
-        }
-        snprintf(buf, sizeof buf, "OKAY%04x%s",(unsigned)strlen(out),out);
-        writex(reply_fd, buf, strlen(buf));
-        return 0;
-    }
-    // indicates a new emulator instance has started
-    if (!strncmp(service,"emulator:",9)) {
-        int  port = atoi(service+9);
-        local_connect(port);
-        /* we don't even need to send a reply */
-        return 0;
-    }
-#endif // ADB_HOST
 
     if(!strcmp(service,"list-forward")) {
         // Create the list of forward redirections.
@@ -1499,28 +1026,10 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     return -1;
 }
 
-#if !ADB_HOST
-int recovery_mode = 0;
-#endif
 
 int main(int argc, char **argv)
 {
-#if ADB_HOST
-    adb_sysdeps_init();
-    adb_trace_init();
-    D("Handling commandline()\n");
-    return adb_commandline(argc - 1, argv + 1);
-#else
-    /* If adbd runs inside the emulator this will enable adb tracing via
-     * adb-debug qemud service in the emulator. */
-    //adb_qemu_trace_init();
-    if((argc > 1) && (!strcmp(argv[1],"recovery"))) {
-        adb_device_banner = "recovery";
-        recovery_mode = 1;
-    }
-
     start_device_log();
     D("Handling main()\n");
     return adb_main(0, DEFAULT_ADB_PORT);
-#endif
 }

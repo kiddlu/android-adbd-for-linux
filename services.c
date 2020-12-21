@@ -47,6 +47,45 @@ void *service_bootstrap_func(void *x)
     return 0;
 }
 
+static void sideload_service(int s, void *cookie)
+{
+    unsigned char buf[4096];
+    unsigned count = (unsigned) cookie;
+    int fd;
+
+    printf("sideload_service invoked\n");
+
+    fd = adb_creat(ADB_SIDELOAD_FILENAME, 0644);
+    if(fd < 0) {
+        printf("failed to create %s\n", ADB_SIDELOAD_FILENAME);
+        adb_close(s);
+        return;
+    }
+
+    while(count > 0) {
+        unsigned xfer = (count > 4096) ? 4096 : count;
+        if(readx(s, buf, xfer)) break;
+        if(writex(fd, buf, xfer)) break;
+        count -= xfer;
+    }
+
+    if(count == 0) {
+        writex(s, "OKAY", 4);
+    } else {
+        writex(s, "FAIL", 4);
+    }
+    adb_close(fd);
+    adb_close(s);
+
+    if (count == 0) {
+        printf("successful sideload\n");
+        sleep(1);
+        return;
+    }
+    return;
+}
+
+
 static int create_service_thread(void (*func)(int, void *), void *cookie)
 {
     stinfo *sti;
@@ -242,6 +281,8 @@ int service_to_fd(const char *name)
         }
     } else if(!strncmp(name, "sync:", 5)) {
         ret = create_service_thread(file_sync_service, NULL);
+    } else if (!strncmp(name, "sideload:", 9)) {
+        ret = create_service_thread(sideload_service, (void*) atoi(name + 9));
     }
 
     if (ret >= 0) {

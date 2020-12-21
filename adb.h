@@ -435,4 +435,6 @@ extern int SHELL_EXIT_NOTIFY_FD;
 int sendfailmsg(int fd, const char *reason);
 int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s);
 
+#define ADB_SIDELOAD_FILENAME "/tmp/update.zip"
+
 #endif

@@ -34,6 +34,15 @@
 #define MAX_PACKET_SIZE_FS	64
 #define MAX_PACKET_SIZE_HS	512
 
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define htole16(x) (x)
+#  define htole32(x) (x)
+# else
+#  define htole16(x) __bswap_16 (x)
+#  define htole32(x) __bswap_32 (x)
+#endif
+
+
 #define cpu_to_le16(x)  htole16(x)
 #define cpu_to_le32(x)  htole32(x)
 

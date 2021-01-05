@@ -1,51 +1,34 @@
-# Makefile for adbd
+CPUS=$(shell cat /proc/cpuinfo | grep "processor" | wc -l)
+PWD=$(shell pwd)
+BUILD_DIR=$(PWD)/build
+MAKE_OPT=
 
-#arch
-SRCS+= adb.c
+define shcmd-makepre
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && cmake ..
+endef
 
-#fd-event
-SRCS+= fdevent.c
+define shcmd-make
+	@cd $(BUILD_DIR) && make -j$(CPUS) $(MAKE_OPT) | grep -v "^make\[[0-9]\]:"
+endef
 
-#transport layer
-SRCS+= transport.c
-SRCS+= transport_local.c
-SRCS+= transport_usb.c
+define shcmd-makeclean
+	@cd $(BUILD_DIR) && make clean
+endef
 
-#net driver
-SRCS+= sockets.c
-SRCS+= sockets_libcutils.c
+define shcmd-makerm
+	rm -rf $(BUILD_DIR) 
+endef
 
-#usb driver
-SRCS+= usb_linux_client.c
-
-#servive
-#focus on shell & file sync/pull/push service
-SRCS+= services.c
-SRCS+= file_sync_service.c
-SRCS+= priv_service.c
-
-CFLAGS+= -DADB_HOST_ON_TARGET
-
-CFLAGS+= -O2
-CFLAGS+= -Wall -Wno-unused-parameter -Wno-deprecated-declarations
-CFLAGS+= -D_GNU_SOURCE -D_XOPEN_SOURCE
-
-CFLAGS+= -I$(shell pwd)
-
-LDFLAGS= -static 
-
-LIBS= -lpthread
-
-TOOLCHAIN=
-CC= $(TOOLCHAIN)gcc
-
-OBJS= $(SRCS:%.c=%.o)
-#OBJS+= $(S_SRCS:%.S=%.o)
-
-all: adbd
-
-adbd: $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+.PHONY: all clean rm pre
+all: pre 
+	$(call shcmd-make)
 
 clean:
-	rm -rf adb $(OBJS)
+	$(call shcmd-makeclean)
+
+rm:
+	$(call shcmd-makerm)
+
+pre:
+	$(call shcmd-makepre)

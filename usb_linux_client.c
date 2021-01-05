@@ -34,17 +34,15 @@
 #define MAX_PACKET_SIZE_FS	64
 #define MAX_PACKET_SIZE_HS	512
 
-# if __BYTE_ORDER == __LITTLE_ENDIAN
-#  define htole16(x) (x)
-#  define htole32(x) (x)
-# else
-#  define htole16(x) __bswap_16 (x)
-#  define htole32(x) __bswap_32 (x)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+# define cpu_to_le16(x) (x)
+# define cpu_to_le32(x) (x)
+#else
+# define cpu_to_le16(x) ((((x) >> 8) & 0xffu) | (((x) & 0xffu) << 8))
+# define cpu_to_le32(x) \
+	((((x) & 0xff000000u) >> 24) | (((x) & 0x00ff0000u) >>  8) | \
+	 (((x) & 0x0000ff00u) <<  8) | (((x) & 0x000000ffu) << 24))
 #endif
-
-
-#define cpu_to_le16(x)  htole16(x)
-#define cpu_to_le32(x)  htole32(x)
 
 struct usb_handle
 {

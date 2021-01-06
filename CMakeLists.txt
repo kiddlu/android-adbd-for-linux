@@ -9,29 +9,28 @@ add_definitions (
 )
 
 set(SOURCES
- ${PROJECT_SOURCE_DIR}/adb.c
+ ${PROJECT_SOURCE_DIR}/adbd/adb.c
  
- ${PROJECT_SOURCE_DIR}/fdevent.c
+ ${PROJECT_SOURCE_DIR}/adbd/fdevent.c
  
- ${PROJECT_SOURCE_DIR}/transport.c
- ${PROJECT_SOURCE_DIR}/transport_local.c
- ${PROJECT_SOURCE_DIR}/transport_usb.c
+ ${PROJECT_SOURCE_DIR}/adbd/transport.c
+ ${PROJECT_SOURCE_DIR}/adbd/transport_local.c
+ ${PROJECT_SOURCE_DIR}/adbd/transport_usb.c
  
- ${PROJECT_SOURCE_DIR}/sockets.c
- ${PROJECT_SOURCE_DIR}/sockets_libcutils.c
+ ${PROJECT_SOURCE_DIR}/adbd/sockets.c
+ ${PROJECT_SOURCE_DIR}/adbd/sockets_libcutils.c
  
- ${PROJECT_SOURCE_DIR}/usb_linux_client.c
+ ${PROJECT_SOURCE_DIR}/adbd/usb_linux_client.c
  
- ${PROJECT_SOURCE_DIR}/services.c
- ${PROJECT_SOURCE_DIR}/file_sync_service.c
- ${PROJECT_SOURCE_DIR}/priv_service.c
+ ${PROJECT_SOURCE_DIR}/adbd/services.c
+ ${PROJECT_SOURCE_DIR}/adbd/file_sync_service.c
+ ${PROJECT_SOURCE_DIR}/adbd/priv_service.c
 )
 
 #static link
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
-include_directories (${PROJECT_SOURCE_DIR}/)
+include_directories (${PROJECT_SOURCE_DIR}/adbd/)
 
-include_directories (${PROJECT_SOURCE_DIR}/include)
 add_executable(adbd ${SOURCES})
 target_link_libraries(adbd -lpthread)

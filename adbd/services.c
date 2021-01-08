@@ -161,7 +161,7 @@ static int create_subprocess(const char *cmd, const char *arg0, const char *arg1
 
         // set OOM adjustment to zero
         char text[64];
-        snprintf(text, sizeof text, "/proc/%d/oom_adj", getpid());
+        snprintf(text, sizeof text, "/proc/%d/oom_score_adj", getpid());
         int fd = adb_open(text, O_WRONLY);
         if (fd >= 0) {
             adb_write(fd, "0", 1);

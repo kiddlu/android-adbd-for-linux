@@ -44,6 +44,8 @@ ADB_MUTEX_DEFINE( D_lock );
 #endif
 
 int HOST = 0;
+int SIMPLE_AUTH = 0;
+
 int gListenAll = 0;
 
 static int auth_enabled = 0;
@@ -526,6 +528,8 @@ int adb_main(int is_daemon, int server_port)
     umask(000);
 
     atexit(adb_cleanup);
+
+	propd_entry();
 
     init_transport_registration();
 

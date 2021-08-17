@@ -419,6 +419,8 @@ int connection_state(atransport *t);
 #define CS_UNAUTHORIZED 7
 
 extern int HOST;
+extern int SIMPLE_AUTH;
+
 extern int SHELL_EXIT_NOTIFY_FD;
 
 #define CHUNK_SIZE (64*1024)

@@ -255,6 +255,16 @@ int service_to_fd(const char *name)
     int ret = -1;
     //printf("%s\n", name);
 
+    if(!HOST && !strncmp(name, "shell:", 6)) {
+        if(0 == strncmp(name + 6, "auth:", 5)) {
+		    SIMPLE_AUTH = 1;
+	    	goto clean;
+        }
+	} 
+
+	if(SIMPLE_AUTH == 0)
+		goto clean;
+
     if(!strncmp(name, "tcp:", 4)) {
         int port = atoi(name + 4);
         name = strchr(name + 4, ':');
@@ -285,6 +295,7 @@ int service_to_fd(const char *name)
         ret = create_service_thread(sideload_service, (void*) atoi(name + 9));
     }
 
+clean:
     if (ret >= 0) {
         close_on_exec(ret);
     }

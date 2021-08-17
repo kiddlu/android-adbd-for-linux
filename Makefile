@@ -21,7 +21,7 @@ define shcmd-makerm
 endef
 
 .PHONY: all clean rm pre
-all: pre 
+all: pre
 	$(call shcmd-make)
 
 clean:

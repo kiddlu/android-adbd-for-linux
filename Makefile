@@ -13,11 +13,11 @@ define shcmd-make
 endef
 
 define shcmd-makeclean
-	@cd $(BUILD_DIR) && make clean
+	@if [ -d $(BUILD_DIR) ]; then (cd $(BUILD_DIR) && make clean && echo "##Clean build##"); fi
 endef
 
 define shcmd-makerm
-	rm -rf $(BUILD_DIR) 
+	@if [ -d $(BUILD_DIR) ]; then (rm -rf $(BUILD_DIR)); fi
 endef
 
 .PHONY: all clean rm pre

@@ -264,6 +264,7 @@ static void usb_adb_init()
     if(adb_thread_create(&tid, usb_adb_open_thread, h)){
         fatal_errno("cannot create usb thread");
     }
+    pthread_setname_np(tid, "usb adb thread");
 }
 
 
@@ -465,6 +466,7 @@ static void usb_ffs_init()
     if (adb_thread_create(&tid, usb_ffs_open_thread, h)){
         fatal_errno("[ cannot create usb thread ]\n");
     }
+    pthread_setname_np(tid, "usb ffs thread");
 }
 
 void usb_init()

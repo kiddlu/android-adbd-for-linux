@@ -138,6 +138,7 @@ void local_init(int port)
         fatal_errno("cannot create local socket %s thread",
                     HOST ? "client" : "server");
     }
+    pthread_setname_np(thr, "socket thread");
 }
 
 static void remote_kick(atransport *t)

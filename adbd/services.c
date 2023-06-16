@@ -49,7 +49,7 @@ void *service_bootstrap_func(void *x)
 
 static void sideload_service(int s, void *cookie)
 {
-    unsigned char buf[4096];
+    unsigned char buf[MAX_PAYLOAD];
     unsigned count = (unsigned) cookie;
     int fd;
 
@@ -63,7 +63,7 @@ static void sideload_service(int s, void *cookie)
     }
 
     while(count > 0) {
-        unsigned xfer = (count > 4096) ? 4096 : count;
+        unsigned xfer = (count > MAX_PAYLOAD) ? MAX_PAYLOAD : count;
         if(readx(s, buf, xfer)) break;
         if(writex(fd, buf, xfer)) break;
         count -= xfer;
@@ -85,6 +85,13 @@ static void sideload_service(int s, void *cookie)
     return;
 }
 
+
+void reboot_service(int fd, void *arg)
+{
+	int ret = system("reboot");
+	sleep(3);
+	return;
+}
 
 static int create_service_thread(void (*func)(int, void *), void *cookie)
 {
@@ -110,6 +117,8 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
         printf("cannot create service thread\n");
         return -1;
     }
+    
+    pthread_setname_np(t, "service thr");
 
     D("service thread started, %d:%d\n",s[0], s[1]);
     return s[0];
@@ -246,6 +255,8 @@ static int create_subproc_thread(const char *name)
         return -1;
     }
 
+    pthread_setname_np(t, "subproc thread");
+
     D("service thread started, fd=%d pid=%d\n",ret_fd, pid);
     return ret_fd;
 }
@@ -255,15 +266,25 @@ int service_to_fd(const char *name)
     int ret = -1;
     //printf("%s\n", name);
 
-    if(!HOST && !strncmp(name, "shell:", 6)) {
-        if(0 == strncmp(name + 6, "auth:", 5)) {
-		    SIMPLE_AUTH = 1;
-	    	goto clean;
-        }
-	} 
+    if(!strncmp(name, "reboot:", 7)) {
+        void* arg = strdup(name + 7);
+        if(arg == 0) return -1;
+        ret = create_service_thread(reboot_service, arg);
+        goto clean;
+    }
 
-	if(SIMPLE_AUTH == 0)
+    if(!HOST && !strncmp(name, "shell:", 6) && !SIMPLE_AUTH) {
+        if(0 == strncmp(name + 6, "auth:", 5)) {
+            SIMPLE_AUTH = 1;
+            ret = create_subproc_thread("echo auth ok!");
+            goto clean;
+        }
+	}
+
+	if(SIMPLE_AUTH == 0) {
+        ret = create_subproc_thread("echo pls auth first!");
 		goto clean;
+	}
 
     if(!strncmp(name, "tcp:", 4)) {
         int port = atoi(name + 4);

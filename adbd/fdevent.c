@@ -57,11 +57,15 @@ static void fatal(const char *fn, const char *fmt, ...)
 #define FATAL(x...) fatal(__FUNCTION__, x)
 
 #if DEBUG
+#include <string.h>
+
+#define filename(x) strrchr(x,'/') ? strrchr(x,'/')+1 : x
+
 #define D(...) \
     do { \
         adb_mutex_lock(&D_lock);               \
         int save_errno = errno;                \
-        fprintf(stderr, "%s::%s():", __FILE__, __FUNCTION__);  \
+        fprintf(stderr, "adbd %s::%s():", filename(__FILE__), __FUNCTION__);  \
         errno = save_errno;                    \
         fprintf(stderr, __VA_ARGS__);          \
         adb_mutex_unlock(&D_lock);             \

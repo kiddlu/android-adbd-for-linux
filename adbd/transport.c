@@ -500,10 +500,12 @@ static void transport_registration_func(int _fd, unsigned ev, void *data)
         if(adb_thread_create(&input_thread_ptr, input_thread, t)){
             fatal_errno("cannot create input thread");
         }
+        pthread_setname_np(input_thread_ptr, "input thread");
 
         if(adb_thread_create(&output_thread_ptr, output_thread, t)){
             fatal_errno("cannot create output thread");
         }
+        pthread_setname_np(output_thread_ptr, "output thread");
     }
 
     adb_mutex_lock(&transport_lock);

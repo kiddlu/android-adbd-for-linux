@@ -336,14 +336,18 @@ void adb_qemu_trace(const char* fmt, ...);
 //#  define ADB_TRACING  ((adb_trace_mask & (1 << TRACE_TAG)) != 0)
 #  define ADB_TRACING  0
 
+#include <string.h>
+
+#define filename(x) strrchr(x,'/') ? strrchr(x,'/')+1 : x
+
   /* you must define TRACE_TAG before using this macro */
 #  define  D(...)                                      \
         do {                                           \
             if (ADB_TRACING) {                         \
                 int save_errno = errno;                \
                 adb_mutex_lock(&D_lock);               \
-                fprintf(stderr, "%s::%s():",           \
-                        __FILE__, __FUNCTION__);       \
+                fprintf(stderr, "adbd %s::%s():",           \
+                        filename(__FILE__), __FUNCTION__);       \
                 errno = save_errno;                    \
                 fprintf(stderr, __VA_ARGS__ );         \
                 fflush(stderr);                        \

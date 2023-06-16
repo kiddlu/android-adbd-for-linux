@@ -529,7 +529,7 @@ int adb_main(int is_daemon, int server_port)
 
     atexit(adb_cleanup);
 
-	propd_entry();
+	//propd_entry();
 
     init_transport_registration();
 
@@ -543,6 +543,8 @@ int adb_main(int is_daemon, int server_port)
 
     D("Event loop starting\n");
 
+    pthread_setname_np(pthread_self(), "main thread");
+
     fdevent_loop();
 
     usb_cleanup();
@@ -553,6 +555,11 @@ int adb_main(int is_daemon, int server_port)
 
 int main(int argc, char **argv)
 {
+    if (daemon(0, 1)) {
+        printf("Failed daemonizing");
+        return 0;
+    }
+
     start_device_log();
     D("Handling main()\n");
     return adb_main(0, DEFAULT_ADB_PORT);
